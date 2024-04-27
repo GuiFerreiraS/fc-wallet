@@ -14,6 +14,7 @@ import (
 	"github.com.br/devfullcycle/fc-ms-wallet/internal/web"
 	"github.com.br/devfullcycle/fc-ms-wallet/internal/web/webserver"
 	"github.com.br/devfullcycle/fc-ms-wallet/pkg/events"
+	"github.com.br/devfullcycle/fc-ms-wallet/pkg/kafka"
 	"github.com.br/devfullcycle/fc-ms-wallet/pkg/uow"
 	ckafka "github.com/confluentinc/confluent-kafka-go/kafka"
 	_ "github.com/go-sql-driver/mysql"
@@ -37,7 +38,7 @@ func main() {
 		"bootstrap.servers": "kafka:29092",
 		"group.id":          "wallet",
 	}
-	kafkaProducer, err := ckafka.NewProducer(&configMap)
+	kafkaProducer := kafka.NewKafkaProducer(&configMap)
 
 	eventDispatcher := events.NewEventDispatcher()
 	eventDispatcher.Register("TransactionCreated", handler.NewTransactionCreatedKafkaHandler(kafkaProducer))
@@ -66,14 +67,14 @@ func main() {
 
 	webserver := webserver.NewWebServer(":8080")
 
-	clienHandler := web.NewWebClientHandler(*createClientUseCase)
+	clientHandler := web.NewWebClientHandler(*createClientUseCase)
 	accountHandler := web.NewWebAccountHandler(*createAccountUseCase)
 	transactionHandler := web.NewWebTransactionHandler(*createTransactionUseCase)
 
-	webserver.AddHandler("/clients", clienHandler.CreateClient)
+	webserver.AddHandler("/clients", clientHandler.CreateClient)
 	webserver.AddHandler("/accounts", accountHandler.CreateAccount)
 	webserver.AddHandler("/transactions", transactionHandler.CreateTransaction)
 
-	fmt.Println("Starting web server")
+	fmt.Println("Server is running")
 	webserver.Start()
 }
