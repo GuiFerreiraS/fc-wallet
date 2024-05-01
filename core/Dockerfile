@@ -4,4 +4,10 @@ WORKDIR /app/
 
 RUN apt-get update && apt-get install -y librdkafka-dev
 
-CMD ["tail", "-f", "/dev/null"]
+COPY . .
+
+RUN go mod tidy
+
+RUN go build -o main ./cmd/walletcore
+
+CMD ["./main"]

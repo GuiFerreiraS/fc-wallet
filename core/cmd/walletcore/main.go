@@ -18,6 +18,9 @@ import (
 	"github.com.br/devfullcycle/fc-ms-wallet/pkg/uow"
 	ckafka "github.com/confluentinc/confluent-kafka-go/kafka"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
@@ -32,6 +35,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	driver, _ := mysql.WithInstance(db, &mysql.Config{})
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://internal/database/migrations",
+		"wallet",
+		driver,
+	)
+	if err != nil {
+		fmt.Println("Error creating migration instance:", err)
+	}
+
+	err = m.Up()
+	if err != nil {
+		fmt.Println("Up migration:", err)
+	}
+
 	defer db.Close()
 
 	configMap := ckafka.ConfigMap{
@@ -67,6 +86,29 @@ func main() {
 		transactionCreatedEvent,
 		balanceUpdatedEvent,
 	)
+
+	// Database population --------
+	client1, _ := createClientUseCase.Execute(create_client.CreateClientInputDTO{
+		Name:  "Client 1",
+		Email: "client1@gmail.com",
+	})
+
+	client2, _ := createClientUseCase.Execute(create_client.CreateClientInputDTO{
+		Name:  "Client 2",
+		Email: "client2@gmail.com",
+	})
+
+	account1, _ := createAccountUseCase.Execute(create_account.CreateAccountInputDTO{
+		ClientID: client1.ID,
+	})
+	account2, _ := createAccountUseCase.Execute(create_account.CreateAccountInputDTO{
+		ClientID: client2.ID,
+	})
+
+	db.Exec(`UPDATE accounts SET balance = ? WHERE id = ?`, 1000, account1.ID)
+	db.Exec(`UPDATE accounts SET balance = ? WHERE id = ?`, 1000, account2.ID)
+
+	// End database population ---------------
 
 	webserver := webserver.NewWebServer(":8080")
 
