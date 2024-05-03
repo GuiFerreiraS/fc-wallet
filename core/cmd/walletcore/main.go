@@ -88,25 +88,13 @@ func main() {
 	)
 
 	// Database population --------
-	client1, _ := createClientUseCase.Execute(create_client.CreateClientInputDTO{
-		Name:  "Client 1",
-		Email: "client1@gmail.com",
-	})
+	db.Exec(`INSERT IGNORE INTO clients (id,name,email,created_at) VALUES 
+		('0a35e301-2210-4fc5-b0ab-7c78c7015d35','John Doe','john@mock.com','2024-05-02'),
+	 	('415c12f6-d80e-40f0-aa5e-165d90e213c4','Jane Doe','jane@mock.com','2024-05-03')`)
 
-	client2, _ := createClientUseCase.Execute(create_client.CreateClientInputDTO{
-		Name:  "Client 2",
-		Email: "client2@gmail.com",
-	})
-
-	account1, _ := createAccountUseCase.Execute(create_account.CreateAccountInputDTO{
-		ClientID: client1.ID,
-	})
-	account2, _ := createAccountUseCase.Execute(create_account.CreateAccountInputDTO{
-		ClientID: client2.ID,
-	})
-
-	db.Exec(`UPDATE accounts SET balance = ? WHERE id = ?`, 1000, account1.ID)
-	db.Exec(`UPDATE accounts SET balance = ? WHERE id = ?`, 1000, account2.ID)
+	db.Exec(`INSERT INTO accounts (id,client_id,balance,created_at) VALUES
+	('208429b3-0598-4751-90c3-447a3d3565c9','0a35e301-2210-4fc5-b0ab-7c78c7015d35',1000,'2024-05-02'),
+	('09ef7fcd-4dd0-4513-8fa0-b6844f4ecb48','415c12f6-d80e-40f0-aa5e-165d90e213c4',1000,'2024-05-03')`)
 
 	// End database population ---------------
 
