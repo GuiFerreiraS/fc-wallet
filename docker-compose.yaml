@@ -1,4 +1,4 @@
-version: '3'
+version: '3.4'
 
 services:
   mysql:
@@ -7,6 +7,12 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: wallet
       MYSQL_PASSWORD: root
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u root --password=$$MYSQL_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 55
     ports:
       - 3306:3306
     volumes:
@@ -61,11 +67,26 @@ services:
       CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
       CONFLUENT_METRICS_TOPIC_REPLICATION: 1
       PORT: 9021
+
+  balancesapp:
+    build: ./balances
+    ports:
+      - 3003:3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      control-center:
+        condition: service_started
+
   
   goapp:
     build: ./core
     ports:
       - 8080:8080
     depends_on:
-      - mysql
-      - control-center
+      mysql:
+        condition: service_healthy
+      balancesapp:
+        condition: service_started
+      control-center:
+        condition: service_started
